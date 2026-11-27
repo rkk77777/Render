@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Maestro VPN</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-space: #030408;
+      --bg-card: rgba(14, 18, 32, 0.84);
+      --bg-card-hover: rgba(22, 28, 48, 0.92);
+      --border: rgba(255, 255, 255, 0.11);
+      --text-main: #f4f6ff;
+      --text-muted: #98a2c6;
+      --accent-white: #ffffff;
+      --accent-dark: #06070c;
+      --accent-glow: rgba(255, 255, 255, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 82% 6%, rgba(255, 255, 255, 0.14), transparent 30%),
+        radial-gradient(circle at 15% 85%, rgba(92, 118, 255, 0.08), transparent 40%),
+        var(--bg-space);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 18px 16px 92px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Twinkling stars */
+    .stars-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: #ffffff;
+      animation: twinkle var(--dur, 4s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+      opacity: 0.25;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.15; transform: scale(0.85); }
+      50% { opacity: 0.9; transform: scale(1.25); }
+    }
+
+    /* Peeking crescent moon */
+    .crescent-moon {
+      position: fixed;
+      top: -28px;
+      right: -28px;
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      box-shadow: -20px 16px 0 3px rgba(255, 255, 255, 0.88);
+      filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.22));
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.82;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 2;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand-title {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .btn-white {
+      background: var(--accent-white);
+      color: var(--accent-dark);
+      border: none;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+      box-shadow: 0 4px 18px rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-white:active {
+      transform: scale(0.98);
+      opacity: 0.92;
+    }
+
+    .btn-trial {
+      padding: 8px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+      border-radius: 10px;
+    }
+
+    .btn-outline {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 15px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .section-heading {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 4px 2px 10px;
+    }
+
+    .account-topbar {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      padding: 2px 4px;
+    }
+
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .plan-name {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-price {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--accent-white);
+    }
+
+    .plan-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .badge-best {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #06070c;
+    }
+
+    .field-block {
+      margin-top: 10px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .selector-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .client-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 11px;
+      padding: 9px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .client-btn.active {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.55);
+      color: #ffffff;
+    }
+
+    .device-select {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .import-guide {
+      display: none;
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    .import-guide.open {
+      display: block;
+    }
+
+    .import-guide-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .config-step {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    .config-step li {
+      margin-left: 16px;
+      margin-bottom: 4px;
+    }
+
+    .ref-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .stat-lbl {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Заблокированная реферальная зона для пользователей без оплаченной подписки */
+    .ref-lock-container {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .ref-lock-body {
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+
+    .ref-lock-container.locked .ref-lock-body {
+      filter: blur(3px) brightness(0.32);
+      opacity: 0.45;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .ref-lock-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      background: rgba(4, 6, 12, 0.76);
+      backdrop-filter: blur(3px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+      cursor: not-allowed;
+    }
+
+    .ref-lock-container.locked .ref-lock-overlay {
+      display: flex;
+    }
+
+    .lock-svg {
+      width: 38px;
+      height: 38px;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+
+    .lock-msg {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .lock-submsg {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      max-width: 260px;
+    }
+
+    .ref-bound-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .ref-link-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-main);
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+
+    .account-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 13px;
+    }
+
+    .account-row:last-child {
+      border-bottom: none;
+    }
+
+    .account-key {
+      color: var(--text-muted);
+    }
+
+    .account-val {
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Bottom navigation */
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(6, 8, 15, 0.94);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      z-index: 10;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 4px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .nav-btn.active {
+      color: #ffffff;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 84px;
+      transform: translateX(-50%) translateY(12px);
+      background: #ffffff;
+      color: #06070c;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 20;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="stars-layer" id="stars-layer"></div>
+  <div class="crescent-moon"></div>
+
+  <div class="app-container">
+    <div class="top-header">
+      <div>
+        <div class="brand-title">✦ Maestro VPN</div>
+        <div class="brand-sub" id="header-uid">ID: определение...</div>
+      </div>
+      <button class="btn-white btn-trial" id="btn-trial" onclick="activateTrial()">1,5 дня бесплатно</button>
+    </div>
+
+    <!-- 1. Обзор / Тарифы -->
+    <section id="pane-overview" class="tab-pane active">
+      <div class="section-heading">Тарифы доступа</div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Месяц</span>
+          <span class="plan-price">69 ₽</span>
+        </div>
+        <div class="plan-desc">30 дней доступа • до 4 устройств одновременно • Happ и v2RayTun</div>
+        <a class="btn-white" style="width:100%;" id="pay-link-month" href="https://t.me/Maestro_vpn_official_bot?start=pay_month">
+          Оформить • 69 ₽
+        </a>
+      </div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Три месяца</span>
+          <span class="plan-price">199 ₽</span>
+        </div>
+        <div class="plan-desc">90 дней доступа • до 4 устройств одновременно • Happ и v2RayTun</div>
+        <a class="btn-white" style="width:100%;" id="pay-link-q3" href="https://t.me/Maestro_vpn_official_bot?start=pay_q3">
+          Оформить • 199 ₽
+        </a>
+      </div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Полгода</span>
+          <span class="plan-price">399 ₽</span>
+        </div>
+        <div class="plan-desc">180 дней доступа • до 4 устройств одновременно • Happ и v2RayTun</div>
+        <a class="btn-white" style="width:100%;" id="pay-link-half" href="https://t.me/Maestro_vpn_official_bot?start=pay_half">
+          Оформить • 399 ₽
+        </a>
+      </div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Год <span class="badge-best">Выгодно</span></span>
+          <span class="plan-price">799 ₽</span>
+        </div>
+        <div class="plan-desc">365 дней доступа • до 5 устройств одновременно • Happ и v2RayTun</div>
+        <a class="btn-white" style="width:100%;" id="pay-link-year" href="https://t.me/Maestro_vpn_official_bot?start=pay_year">
+          Оформить • 799 ₽
+        </a>
+      </div>
+    </section>
+
+    <!-- 2. Доступ / Конфигураторы -->
+    <section id="pane-configs" class="tab-pane">
+      <div class="section-heading">Доступ и конфигураторы</div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Параметры подключения</span>
+          <span class="status-pill" style="margin:0;" id="active-client-pill">Happ</span>
+        </div>
+
+        <div class="field-block">
+          <label class="field-label">Конфигуратор / клиент</label>
+          <div class="selector-row" id="client-selector">
+            <button type="button" class="client-btn active" data-client="Happ" onclick="selectClient('Happ')">Happ</button>
+            <button type="button" class="client-btn" data-client="V2Ray" onclick="selectClient('V2Ray')">V2Ray</button>
+            <button type="button" class="client-btn" data-client="Другое" onclick="selectClient('Другое')">Другое</button>
+          </div>
+        </div>
+
+        <div class="field-block">
+          <label class="field-label" for="device-select">Устройство</label>
+          <select id="device-select" class="device-select" onchange="updateImportGuide()">
+            <option value="iPhone / iPad" selected>iPhone / iPad</option>
+            <option value="Android">Android</option>
+            <option value="Windows / macOS">Windows / macOS</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-outline" onclick="toggleImportGuide()">Как импортировать?</button>
+
+        <div id="import-guide" class="import-guide">
+          <div class="import-guide-title" id="import-guide-title">Инструкция для Happ</div>
+          <ol class="config-step" id="import-guide-steps"></ol>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">Happ</span>
+          <span class="status-pill" style="margin:0;">Клиент подписки</span>
+        </div>
+        <ol class="config-step">
+          <li>Установите приложение <b>Happ</b> на ваше устройство.</li>
+          <li>Получите или скопируйте ключ подписки в боте <b>@Maestro_vpn_official_bot</b>.</li>
+          <li>Добавьте подписку в Happ и включите подключение.</li>
+        </ol>
+        <button class="btn-outline" onclick="copyText('https://t.me/Maestro_vpn_official_bot', 'Ссылка на бота для ключа Happ скопирована')">
+          Скопировать бота для ключа Happ
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="plan-header">
+          <span class="plan-name">v2RayTun</span>
+          <span class="status-pill" style="margin:0;">Клиент подписки</span>
+        </div>
+        <ol class="config-step">
+          <li>Установите и откройте клиент <b>v2RayTun</b>.</li>
+          <li>Скопируйте ссылку подписки из бота <b>@Maestro_vpn_official_bot</b>.</li>
+          <li>Вставьте ссылку в v2RayTun и активируйте туннель.</li>
+        </ol>
+        <button class="btn-outline" onclick="copyText('https://t.me/Maestro_vpn_official_bot', 'Ссылка на бота для ключа v2RayTun скопирована')">
+          Скопировать бота для ключа v2RayTun
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Реферальная система -->
+    <section id="pane-referral" class="tab-pane">
+      <div class="section-heading">Реферальная система</div>
+
+      <div class="card">
+        <div class="plan-name" style="margin-bottom:6px;">Приглашайте друзей и получайте дни</div>
+        <div class="plan-desc" style="margin-bottom:8px;">
+          Реферальная программа доступна только пользователям с оплаченной подпиской.
+        </div>
+
+        <div class="ref-stats">
+          <div class="stat-box">
+            <div class="stat-val">+7 дней</div>
+            <div class="stat-lbl">Вам за друга</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">+3 дня</div>
+            <div class="stat-lbl">Бонус другу</div>
+          </div>
+        </div>
+
+        <div id="ref-lock-container" class="ref-lock-container locked">
+          <div id="ref-lock-overlay" class="ref-lock-overlay" onclick="onLockedRefClick(event)">
+            <svg class="lock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <div class="lock-msg">Для разблокировки купите подписку</div>
+            <div class="lock-submsg">Бесплатный и пробный доступ не открывают реферальную ссылку.</div>
+            <button type="button" class="btn-white btn-trial" onclick="event.stopPropagation(); goToTariffs();">
+              Перейти к тарифам
+            </button>
+          </div>
+
+          <div class="ref-lock-body">
+            <div class="ref-bound-note">Ссылка привязана к вашему аккаунту.</div>
+            <div class="ref-link-box" id="ref-link-text">https://t.me/Maestro_vpn_official_bot?start=ref_guest</div>
+            <button type="button" id="copy-ref-btn" class="btn-white" style="width:100%;" onclick="copyReferralLink()">
+              Скопировать
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Аккаунт -->
+    <section id="pane-account" class="tab-pane">
+      <div class="account-topbar">Maestro / Аккаунт</div>
+
+      <div class="card">
+        <div class="status-pill" id="sub-status-pill">Статус: без оплаченной подписки</div>
+        <div class="plan-name" id="acc-name" style="margin-bottom:10px;">Профиль Maestro VPN</div>
+
+        <div class="account-row">
+          <span class="account-key">Тариф</span>
+          <span class="account-val" id="acc-tariff">Нет подписки</span>
+        </div>
+        <div class="account-row">
+          <span class="account-key">Действует до</span>
+          <span class="account-val" id="acc-expires">—</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="overview" onclick="switchTab('overview', this)">
+      <span>✦</span>
+      <span>Обзор</span>
+    </button>
+    <button class="nav-btn" data-tab="configs" onclick="switchTab('configs', this)">
+      <span>⚡</span>
+      <span>Доступ</span>
+    </button>
+    <button class="nav-btn" data-tab="referral" onclick="switchTab('referral', this)">
+      <span>★</span>
+      <span>Реферальная система</span>
+    </button>
+    <button class="nav-btn" data-tab="account" onclick="switchTab('account', this)">
+      <span>👤</span>
+      <span>Аккаунт</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BOT_USERNAME = "Maestro_vpn_official_bot";
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+    const userId = tgUser && tgUser.id ? String(tgUser.id) : "guest";
+    const fullName = tgUser
+      ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ") || ("ID " + userId)
+      : "Гость (вне Telegram)";
+
+    // Состояние аккаунта (подключайте реальные значения с сервера / бота)
+    const userState = {
+      hasPaidSubscription: false,
+      tariff: "Нет подписки", // "Месяц" | "Три месяца" | "Полгода" | "Год" | "Нет подписки"
+      expiresAt: "—",
+      selectedClient: "Happ"
+    };
+
+    document.getElementById("header-uid").textContent = "ID: " + userId;
+    document.getElementById("acc-name").textContent = fullName;
+
+    const refLink = `https://t.me/${BOT_USERNAME}?start=ref_${userId}`;
+    document.getElementById("ref-link-text").textContent = refLink;
+
+    const plans = ["month", "q3", "half", "year"];
+    plans.forEach((planKey) => {
+      const btn = document.getElementById("pay-link-" + planKey);
+      if (btn) {
+        const suffix = userId !== "guest" ? `${planKey}_uid_${userId}` : planKey;
+        btn.href = `https://t.me/${BOT_USERNAME}?start=pay_${suffix}`;
+      }
+    });
+
+    // Generate twinkling starfield
+    (function initStars() {
+      const layer = document.getElementById("stars-layer");
+      if (!layer) return;
+      const count = 48;
+      for (let i = 0; i < count; i++) {
+        const star = document.createElement("div");
+        star.className = "star";
+        const size = (i % 3 === 0) ? 2.5 : 1.5;
+        star.style.width = size + "px";
+        star.style.height = size + "px";
+        star.style.left = ((i * 37) % 100) + "%";
+        star.style.top = ((i * 53) % 100) + "%";
+        star.style.setProperty("--dur", (2.8 + (i % 5) * 0.9) + "s");
+        star.style.setProperty("--delay", ((i % 7) * 0.4) + "s");
+        layer.appendChild(star);
+      }
+    })();
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+    }
+
+    function switchTab(tabName, btnEl) {
+      document.querySelectorAll(".tab-pane").forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+      const target = document.getElementById("pane-" + tabName);
+      if (target) target.classList.add("active");
+      if (btnEl) {
+        btnEl.classList.add("active");
+      } else {
+        const navMatch = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
+        if (navMatch) navMatch.classList.add("active");
+      }
+      renderAccountAndReferral();
+    }
+
+    function goToTariffs() {
+      switchTab("overview");
+    }
+
+    function selectClient(clientName) {
+      userState.selectedClient = clientName;
+      document.getElementById("active-client-pill").textContent = clientName;
+      document.querySelectorAll("#client-selector .client-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.client === clientName);
+      });
+      if (document.getElementById("import-guide").classList.contains("open")) {
+        updateImportGuide();
+      }
+    }
+
+    function toggleImportGuide() {
+      const box = document.getElementById("import-guide");
+      box.classList.toggle("open");
+      if (box.classList.contains("open")) {
+        updateImportGuide();
+      }
+    }
+
+    function updateImportGuide() {
+      const device = document.getElementById("device-select").value;
+      const titleEl = document.getElementById("import-guide-title");
+      const stepsEl = document.getElementById("import-guide-steps");
+
+      if (userState.selectedClient === "Happ") {
+        titleEl.textContent = `Как импортировать в Happ (${device})`;
+        stepsEl.innerHTML = `
+          <li>Получите ссылку подписки или ключ в боте <b>@${BOT_USERNAME}</b>.</li>
+          <li>Откройте приложение <b>Happ</b> на устройстве (<em>${device}</em>).</li>
+          <li>Нажмите <b>+</b> / <b>Добавить подписку</b> и вставьте ссылку из буфера обмена.</li>
+          <li>Включите подключение и подтвердите добавление VPN-профиля при запросе системы.</li>
+        `;
+      } else if (userState.selectedClient === "V2Ray") {
+        titleEl.textContent = `Как импортировать в V2Ray (${device})`;
+        stepsEl.innerHTML = `
+          <li>Скопируйте ключ или ссылку подписки в боте <b>@${BOT_USERNAME}</b>.</li>
+          <li>Откройте ваш клиент <b>V2Ray</b> (например, v2RayTun / v2rayNG) на устройстве (<em>${device}</em>).</li>
+          <li>Выберите импорт из буфера обмена или вставьте конфигурацию в раздел подписок.</li>
+          <li>Выберите добавленный профиль и запустите подключение.</li>
+        `;
+      } else {
+        titleEl.textContent = `Как импортировать в другой клиент (${device})`;
+        stepsEl.innerHTML = `
+          <li>Скопируйте ссылку подписки или ключ в боте <b>@${BOT_USERNAME}</b>.</li>
+          <li>Откройте выбранный клиент на устройстве (<em>${device}</em>) и перейдите в раздел добавления профиля.</li>
+          <li>Вставьте данные конфигурации и активируйте подключение.</li>
+        `;
+      }
+    }
+
+    function activateTrial() {
+      const pill = document.getElementById("sub-status-pill");
+      if (pill) pill.textContent = "Статус: пробный доступ (1,5 дня / 36 ч)";
+      if (!userState.hasPaidSubscription) {
+        userState.tariff = "Пробный (1,5 дня)";
+        userState.expiresAt = "Через 36 часов";
+        renderAccountAndReferral();
+      }
+      showToast("Активирован пробный доступ на 1,5 дня (36 часов)");
+    }
+
+    function copyText(text, okMessage) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(okMessage)).catch(() => showToast(text));
+      } else {
+        showToast(text);
+      }
+    }
+
+    function onLockedRefClick(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      showToast("Для разблокировки купите подписку");
+    }
+
+    function copyReferralLink() {
+      if (!userState.hasPaidSubscription) {
+        showToast("Для разблокировки купите подписку");
+        return;
+      }
+      copyText(refLink, "Реферальная ссылка скопирована");
+    }
+
+    function renderAccountAndReferral() {
+      const lockContainer = document.getElementById("ref-lock-container");
+      const copyBtn = document.getElementById("copy-ref-btn");
+      const pill = document.getElementById("sub-status-pill");
+
+      if (userState.hasPaidSubscription) {
+        lockContainer.classList.remove("locked");
+        if (copyBtn) copyBtn.disabled = false;
+        if (pill) pill.textContent = "Статус: подписка активна";
+        document.getElementById("acc-tariff").textContent = userState.tariff;
+        document.getElementById("acc-expires").textContent = userState.expiresAt;
+      } else {
+        lockContainer.classList.add("locked");
+        if (copyBtn) copyBtn.disabled = true;
+        document.getElementById("acc-tariff").textContent = userState.tariff;
+        document.getElementById("acc-expires").textContent = userState.expiresAt;
+      }
+    }
+
+    renderAccountAndReferral();
+  </script>
+</body>
+</html>
